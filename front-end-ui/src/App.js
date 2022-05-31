@@ -2,13 +2,16 @@ import React, { useState } from "react";
 // import ReactDOM from "react-dom";
 import {Keypair, TransactionInstruction, PublicKey, Transaction, LAMPORTS_PER_SOL, Connection, clusterApiUrl} from "@solana/web3.js";
 import "./styles.css";
-import { Buffer } from "buffer";
+// import { Buffer } from "buffer";
+// const { extendBorsh } = require("./utils/borsh");
+const { InitSolStreamSchema, SolStream } = require("./schema");
+const { serialize } = require("borsh");
 
 function App() {
   // React States
   // const [errorMessages, setErrorMessages] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [radiovalue, setRadiovalue]   = useState('Trans: Not selected');
+  const [transactionMode, setTransactionMode]   = useState('Trans: Not selected');
   const [connectWallet, setConnectWallet] = useState('Not Connected');
 
   const [rkey, setRkey] = useState('');
@@ -18,19 +21,19 @@ function App() {
   const base58publicKey = new PublicKey(
     "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1"
   );
-  const stringofwithdraw = "withdraw_sol";
+  // const stringofwithdraw = "withdraw_sol";
 
   const handleChange = e => {
     // this.setState({radio_value:e.target.value})
     // alert("Selected radio value is :"+e.target.value)
     // console.log(e.target.value)
-    setRadiovalue(e.target.value)
+    setTransactionMode(e.target.value)
   };
 
   const connection = new Connection(clusterApiUrl("devnet"));
   const cluster = "devnet"; 
 
-  
+
   async function ConnectWallet(e){
     // console.log(e.target.value)
     try {
@@ -50,21 +53,22 @@ function App() {
     //Prevent page reload
     event.preventDefault();
 
-    const formSubmit = { rkey, amount };
-
-    console.log(formSubmit)
-    console.log(formSubmit.rkey, formSubmit.amount)
-    
     // Capture Unix-Timestamp
     const dateTime = Date.now();
     const timestamp = Math.floor(dateTime / 1000);
     console.log('Unix TimeStamp:', timestamp)
 
+
+    const formSubmit = { transactionMode, timestamp, rkey, amount };
+
+    console.log(formSubmit)
+    console.log(formSubmit.rkey, formSubmit.amount)
+
     const senderaddress = new PublicKey(window.solana.publicKey.toString());
-    const withdraw_data = await PublicKey.findProgramAddress(
-    [Buffer.from(stringofwithdraw), senderaddress.toBuffer()],
-    base58publicKey
-    );
+    // const withdraw_data = await PublicKey.findProgramAddress(
+    // [Buffer.from(stringofwithdraw), senderaddress.toBuffer()],
+    // base58publicKey
+    // );
     const pda = new Keypair();
     console.log('SenderAddress', senderaddress)
     console.log('PDA', pda)
@@ -88,7 +92,7 @@ function App() {
         }
       ],
       programId: new PublicKey(PROGRAM_ID),
-      // data: serialize(InitSolStreamSchema,new SolStream(data)),
+      data: serialize(InitSolStreamSchema,new SolStream(formSubmit)),
     
     })
 
@@ -117,8 +121,8 @@ function App() {
         </div>
         
         <div onChange={handleChange}>
-          <input type="radio" value = "Transfer"  name='transaction' /> Transfer
-          <input type="radio" value = "Withdraw"  name='transaction' /> Withdraw
+          <input type="radio" value = {0}  name='transaction' /> Transfer
+          <input type="radio" value = {1}  name='transaction' /> Withdraw
         </div>
 
         <div className="button-container">
@@ -126,7 +130,7 @@ function App() {
         </div>
 
         <h1>
-        {radiovalue}
+        {transactionMode}
         </h1>
       </form>
     </div>
