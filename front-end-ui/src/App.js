@@ -7,6 +7,9 @@ import "./styles.css";
 const { InitSolStreamSchema, SolStream } = require("./schema");
 const { serialize } = require("borsh");
 
+// window.Buffer = Buffer;
+window.Buffer = window.Buffer || require("buffer").Buffer;
+
 function App() {
   // React States
   // const [errorMessages, setErrorMessages] = useState({});
@@ -95,8 +98,32 @@ function App() {
       data: serialize(InitSolStreamSchema,new SolStream(formSubmit)),
     
     })
+    const transaction = new Transaction().add(instruction);
 
-  };
+      // try {
+        transaction.recentBlockhash = (
+          await connection.getLatestBlockhash()
+        ).blockhash;
+        transaction.feePayer = window.solana.publicKey;
+        transaction.partialSign(pda);
+        const signed = await window.solana.signTransaction(transaction);
+  
+        const signature = await connection.sendRawTransaction(signed.serialize());
+        const finality = "confirmed";
+        await connection.confirmTransaction(signature, finality);
+        const explorerhash = {
+          transactionhash: signature,
+        };
+
+        console.log(explorerhash);
+    // } catch (e) {
+    //   console.warn(e);
+    //   return {
+    //     transactionhash: null,
+    //   };
+    // }
+      };
+
 
   // JSX code for login form
   const renderForm = (
