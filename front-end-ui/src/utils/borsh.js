@@ -11,7 +11,7 @@ export const extendBorsh = () => {
 
   BinaryWriter.prototype.writePubkey = function (value) {
     const writer = this;
-    // console.log(value.toString(), "Write Public Key");
+    console.log(value.toString(), "Write Public Key");
     writer.writeFixedArray(value.toBuffer());
   };
 };

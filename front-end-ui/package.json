@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@solana/buffer-layout": "^4.0.0",
-    "@solana/web3.js": "^1.24.2",
+    "@solana/web3.js": "^1.43.5",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^13.0.0",
     "@testing-library/user-event": "^13.2.1",

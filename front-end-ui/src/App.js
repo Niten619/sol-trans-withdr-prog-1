@@ -2,10 +2,12 @@ import React, { useState } from "react";
 // import ReactDOM from "react-dom";
 import {Keypair, TransactionInstruction, PublicKey, Transaction, LAMPORTS_PER_SOL, Connection, clusterApiUrl} from "@solana/web3.js";
 import "./styles.css";
+import { extendBorsh } from "./utils/borsh";
 // import { Buffer } from "buffer";
 // const { extendBorsh } = require("./utils/borsh");
 const { InitSolStreamSchema, SolStream } = require("./schema");
 const { serialize } = require("borsh");
+extendBorsh();
 
 // window.Buffer = Buffer;
 window.Buffer = window.Buffer || require("buffer").Buffer;
@@ -20,10 +22,12 @@ function App() {
   const [rkey, setRkey] = useState('');
   const [amount, setAmount] = useState('');
 
-  const PROGRAM_ID = "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1";  // program_id of the deployed program
-  const base58publicKey = new PublicKey(
-    "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1"
-  );
+  // const PROGRAM_ID = "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1";  // program_id of the deployed program
+  const PROGRAM_ID = "CYYAXTsmCbZFY5YmEn5J5XxbSVJ1xUBx68HrWFVkJG6u";  // program_id of the deployed program
+
+  // const base58publicKey = new PublicKey(
+  //   "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1"
+  // );
   // const stringofwithdraw = "withdraw_sol";
 
   const handleChange = e => {
@@ -44,6 +48,7 @@ function App() {
       // console.log(resp.publicKey.toString())
 
       await window.solana.connect();
+      window.solana.connect({ onlyIfTrusted: true });  // eagarly connection
       console.log(window.solana.publicKey.toString())
       // 26qv4GCcx98RihuK3c4T6ozB3J7L6VwCuFVc7Ta2A3Uo 
     } catch (err) {
@@ -96,8 +101,9 @@ function App() {
       ],
       programId: new PublicKey(PROGRAM_ID),
       data: serialize(InitSolStreamSchema,new SolStream(formSubmit)),
-    
+      
     })
+    console.log(instruction);
     const transaction = new Transaction().add(instruction);
 
       // try {

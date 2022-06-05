@@ -4,7 +4,7 @@ export class SolStream {
     constructor(args) {
       console.log('Args:', args)
       console.log('timestamp:', args.timestamp)
-      this.instruction = args.transactionMode;
+      this.instruction = 0;
       this.start_time = args.timestamp;
       this.rkey = args.rkey;
       this.amount = (args.amount * LAMPORTS_PER_SOL).toString();
