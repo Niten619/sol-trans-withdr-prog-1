@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // import ReactDOM from "react-dom";
-import {Keypair, TransactionInstruction, PublicKey, Transaction, LAMPORTS_PER_SOL, Connection, clusterApiUrl} from "@solana/web3.js";
+import {Keypair, TransactionInstruction, PublicKey, Transaction, Connection, clusterApiUrl} from "@solana/web3.js";
 import "./styles.css";
 import { extendBorsh } from "./utils/borsh";
 // import { Buffer } from "buffer";
@@ -23,7 +23,8 @@ function App() {
   const [amount, setAmount] = useState('');
 
   // const PROGRAM_ID = "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1";  // program_id of the deployed program
-  const PROGRAM_ID = "CYYAXTsmCbZFY5YmEn5J5XxbSVJ1xUBx68HrWFVkJG6u";  // program_id of the deployed program
+  // const PROGRAM_ID = "CYYAXTsmCbZFY5YmEn5J5XxbSVJ1xUBx68HrWFVkJG6u";  // program_id of the deployed program
+  const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
 
   // const base58publicKey = new PublicKey(
   //   "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1"
@@ -38,7 +39,7 @@ function App() {
   };
 
   const connection = new Connection(clusterApiUrl("devnet"));
-  const cluster = "devnet"; 
+  // const cluster = "devnet"; 
 
 
   async function ConnectWallet(e){
@@ -84,6 +85,11 @@ function App() {
     const instruction = new TransactionInstruction({
       keys: [
         {
+          pubkey: pda.publicKey,
+          isSigner: true,
+          isWritable: true,
+        },
+        {
           pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
           isSigner: true,
           isWritable: true,
@@ -92,18 +98,13 @@ function App() {
           pubkey: new PublicKey(formSubmit.rkey), //recipient
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: pda.publicKey,
-          isSigner: true,
-          isWritable: true,
         }
       ],
       programId: new PublicKey(PROGRAM_ID),
       data: serialize(InitSolStreamSchema,new SolStream(formSubmit)),
       
     })
-    console.log(instruction);
+    console.log('instruction',instruction);
     const transaction = new Transaction().add(instruction);
 
       // try {
@@ -112,16 +113,18 @@ function App() {
         ).blockhash;
         transaction.feePayer = window.solana.publicKey;
         transaction.partialSign(pda);
+        console.log('transaction:', transaction)
         const signed = await window.solana.signTransaction(transaction);
-  
+        console.log('signed:', signed)
         const signature = await connection.sendRawTransaction(signed.serialize());
+        console.log('signature:', signature)
         const finality = "confirmed";
         await connection.confirmTransaction(signature, finality);
         const explorerhash = {
           transactionhash: signature,
         };
 
-        console.log(explorerhash);
+        console.log('Explorerhash:', explorerhash);
     // } catch (e) {
     //   console.warn(e);
     //   return {
