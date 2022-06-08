@@ -23,8 +23,8 @@ function App() {
   const [amount, setAmount] = useState('');
 
   // const PROGRAM_ID = "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1";  // program_id of the deployed program
-  // const PROGRAM_ID = "CYYAXTsmCbZFY5YmEn5J5XxbSVJ1xUBx68HrWFVkJG6u";  // program_id of the deployed program
-  const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
+  const PROGRAM_ID = "2Xf6dAxq5AAhw7NqtJLsyCvwAGoMG911e2CproonqTk1";  // deployed on LocalNet
+  // const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
 
   // const base58publicKey = new PublicKey(
   //   "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1"
@@ -38,7 +38,15 @@ function App() {
     setTransactionMode(e.target.value)
   };
 
-  const connection = new Connection(clusterApiUrl("devnet"));
+  // const connection = new Connection(clusterApiUrl("devnet"));
+
+  // Connecting to the LocalNet
+  const opts = {
+    preflightCommitment: "processed"
+  }
+  const network = "http://127.0.0.1:8899";
+  const connection = new Connection(network, opts.preflightCommitment);
+
   // const cluster = "devnet"; 
 
 
