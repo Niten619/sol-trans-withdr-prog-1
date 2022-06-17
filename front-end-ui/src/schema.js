@@ -1,28 +1,48 @@
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-export class SolStream {
+export class SendSol {
     constructor(args) {
       console.log('Args:', args)
       console.log('timestamp:', args.timestamp)
-      this.instruction = 0;
+      console.log('amount:', args.amount)
+      this.instruction = args.transactionMode;
       this.start_time = args.timestamp;
-      this.rkey = args.rkey;
-      this.amount = (args.amount * LAMPORTS_PER_SOL).toString();
+      this.amount_to_send = (args.amount * LAMPORTS_PER_SOL).toString();
     }
   }
   
-export const InitSolStreamSchema = new Map([
+export const SendSolSchema = new Map([
 [
-    SolStream,
+    SendSol,
     {
     kind: "struct",
     fields: [
         ["instruction", "u8"],
         ["start_time", "u64"],
-        ["receiver", "u64"],
         ["amount_to_send", "u64"],
-    ],
+      ],
     },
-],
+  ],
+]);
+
+
+export class WithdrawSol {
+  constructor(args) {
+    this.instruction = args.transactionMode;
+    this.amount = (args.amount * LAMPORTS_PER_SOL).toString();
+  }
+}
+
+export const WithdrawSolSchema = new Map([
+  [
+    WithdrawSol,
+    {
+      kind: "struct",
+      fields: [
+        ["instruction", "u8"],
+        ["amount", "u64"],
+      ],
+    },
+  ],
 ]);
 

@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 // import ReactDOM from "react-dom";
-import {Keypair, TransactionInstruction, PublicKey, Transaction, Connection, clusterApiUrl} from "@solana/web3.js";
+import {Keypair, TransactionInstruction, PublicKey, Transaction, Connection, clusterApiUrl, SystemProgram} from "@solana/web3.js";
 import "./styles.css";
 import { extendBorsh } from "./utils/borsh";
-// import { Buffer } from "buffer";
+import { Buffer } from "buffer";
 // const { extendBorsh } = require("./utils/borsh");
-const { InitSolStreamSchema, SolStream } = require("./schema");
+const { SendSolSchema, SendSol, WithdrawSolSchema, WithdrawSol } = require("./schema");
 const { serialize } = require("borsh");
 extendBorsh();
 
 // window.Buffer = Buffer;
 window.Buffer = window.Buffer || require("buffer").Buffer;
+
+const pda = new Keypair();
+const pda_address = pda.publicKey.toString();
 
 function App() {
   // React States
@@ -23,13 +26,17 @@ function App() {
   const [amount, setAmount] = useState('');
 
   // const PROGRAM_ID = "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1";  // program_id of the deployed program
-  const PROGRAM_ID = "2Xf6dAxq5AAhw7NqtJLsyCvwAGoMG911e2CproonqTk1";  // deployed on LocalNet
-  // const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
+  // const PROGRAM_ID = "2Xf6dAxq5AAhw7NqtJLsyCvwAGoMG911e2CproonqTk1";  // deployed on LocalNet
+  const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
 
-  // const base58publicKey = new PublicKey(
-  //   "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1"
-  // );
-  // const stringofwithdraw = "withdraw_sol";
+  // const pda = new Keypair();
+  // const pda_address = pda.publicKey.toString();
+  console.log('PDA Address:', pda_address)
+
+  const base58publicKey = new PublicKey(
+    "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB"
+  );
+  const stringofwithdraw = "withdraw_sol";
 
   const handleChange = e => {
     // this.setState({radio_value:e.target.value})
@@ -38,14 +45,15 @@ function App() {
     setTransactionMode(e.target.value)
   };
 
-  // const connection = new Connection(clusterApiUrl("devnet"));
+  // Connecting to the DevNet
+  const connection = new Connection(clusterApiUrl("devnet"));
 
   // Connecting to the LocalNet
-  const opts = {
-    preflightCommitment: "processed"
-  }
-  const network = "http://127.0.0.1:8899";
-  const connection = new Connection(network, opts.preflightCommitment);
+  // const opts = {
+  //   preflightCommitment: "processed"
+  // }
+  // const network = "http://127.0.0.1:8899";
+  // const connection = new Connection(network, opts.preflightCommitment);
 
   // const cluster = "devnet"; 
 
@@ -66,52 +74,53 @@ function App() {
     setConnectWallet('Connected')
   }
 
-  const handleSubmit = async (event) => {
-    //Prevent page reload
-    event.preventDefault();
-
-    // Capture Unix-Timestamp
-    const dateTime = Date.now();
-    const timestamp = Math.floor(dateTime / 1000);
-    console.log('Unix TimeStamp:', timestamp)
-
-
-    const formSubmit = { transactionMode, timestamp, rkey, amount };
-
-    console.log(formSubmit)
-    console.log(formSubmit.rkey, formSubmit.amount)
-
+  async function transferTransaction(formSubmit) {
     const senderaddress = new PublicKey(window.solana.publicKey.toString());
-    // const withdraw_data = await PublicKey.findProgramAddress(
-    // [Buffer.from(stringofwithdraw), senderaddress.toBuffer()],
-    // base58publicKey
-    // );
-    const pda = new Keypair();
+    const vaultAddress_transfer = await PublicKey.findProgramAddress(
+      [Buffer.from(stringofwithdraw), senderaddress.toBuffer()],
+      base58publicKey
+    );
     console.log('SenderAddress', senderaddress)
-    console.log('PDA', pda)
+    console.log('vaultAddress_transfer', vaultAddress_transfer[0])
+    console.log('vaultAddress_transfer_base58', vaultAddress_transfer[0].toBase58())
+    // const pda = new Keypair();
+    // console.log('PDA pubkey', pda.publicKey.toString())
+    console.log('RKEY', rkey)
 
     const instruction = new TransactionInstruction({
       keys: [
         {
-          pubkey: pda.publicKey,
+          pubkey: new PublicKey(pda_address),  // escrow
           isSigner: true,
           isWritable: true,
         },
         {
-          pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
+          // pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
+          pubkey: senderaddress,  //sender
           isSigner: true,
           isWritable: true,
         },
         {
-          pubkey: new PublicKey(formSubmit.rkey), //recipient
+          pubkey: new PublicKey(rkey), //recipient
           isSigner: false,
           isWritable: true,
-        }
+        },
+        {
+          pubkey: SystemProgram.programId, //system program required to make a transfer
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          // pubkey: vaultAddress_transfer[0].toBase58(), //vault
+          pubkey: vaultAddress_transfer[0], //vault
+          isSigner: false,
+          isWritable: true,
+        },
       ],
       programId: new PublicKey(PROGRAM_ID),
-      data: serialize(InitSolStreamSchema,new SolStream(formSubmit)),
-      
-    })
+      data: serialize(SendSolSchema,new SendSol(formSubmit)),
+    });
+
     console.log('instruction',instruction);
     const transaction = new Transaction().add(instruction);
 
@@ -133,6 +142,152 @@ function App() {
         };
 
         console.log('Explorerhash:', explorerhash);
+  }
+
+  async function withdrawTransaction(formSubmit) {
+    const senderaddress = new PublicKey(window.solana.publicKey.toString());
+    const vaultAddress_withdraw = await PublicKey.findProgramAddress(
+      [senderaddress.toBuffer()],
+      base58publicKey
+    );
+    console.log('SenderAddress', senderaddress)
+    console.log('vaultAddress_withdraw', vaultAddress_withdraw)
+    console.log('RKEY', rkey)
+
+    const instruction = new TransactionInstruction({
+      keys: [
+        {
+          pubkey: new PublicKey(pda_address),  // escrow
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: new PublicKey(rkey), //recipient
+          isSigner: true,
+          isWritable: true,
+        },
+        {
+          pubkey: SystemProgram.programId, //system program required to make a transfer
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: vaultAddress_withdraw[0].toBase58(), //vault
+          // pubkey: vaultAddress_withdraw[0], //vault
+          isSigner: false,
+          isWritable: true,
+        },
+      ],
+      programId: new PublicKey(PROGRAM_ID),
+      data: serialize(WithdrawSolSchema,new WithdrawSol(formSubmit)),
+    });
+
+    console.log('instruction',instruction);
+    const transaction = new Transaction().add(instruction);
+
+      // try {
+        transaction.recentBlockhash = (
+          await connection.getLatestBlockhash()
+        ).blockhash;
+        transaction.feePayer = window.solana.publicKey;
+        // transaction.partialSign(pda);
+        // console.log('transaction:', transaction)
+        const signed = await window.solana.signTransaction(transaction);
+        console.log('signed:', signed)
+        const signature = await connection.sendRawTransaction(signed.serialize());
+        console.log('signature:', signature)
+        const finality = "confirmed";
+        await connection.confirmTransaction(signature, finality);
+        const explorerhash = {
+          transactionhash: signature,
+        };
+
+        console.log('Explorerhash:', explorerhash);
+  }
+
+  const handleSubmit = async (event) => {
+    //Prevent page reload
+    event.preventDefault();
+
+    // Capture Unix-Timestamp
+    const dateTime = Date.now();
+    const timestamp = Math.floor(dateTime / 1000);
+    console.log('Unix TimeStamp:', timestamp)
+
+
+    // const formSubmit = { transactionMode, timestamp, rkey, amount };
+    // console.log('rkey', rkey)
+    
+    if (transactionMode == 0){ // Send
+      console.log('Transaction Mode 0')
+      const formSubmit = { transactionMode, timestamp, amount };
+      transferTransaction(formSubmit)
+    } else {                  // Withdraw
+      console.log('Transaction Mode 1')
+      const formSubmit = { transactionMode, amount };
+      withdrawTransaction(formSubmit)
+    }
+    // console.log('formSubmit', formSubmit)
+
+    // const senderaddress = new PublicKey(window.solana.publicKey.toString());
+    // const pda = new Keypair();
+    // console.log('SenderAddress', senderaddress)
+    // console.log('PDA', pda)
+
+    // const instruction = new TransactionInstruction({
+    //   keys: [
+    //     {
+    //       pubkey: pda.publicKey,  // escrow
+    //       isSigner: true,
+    //       isWritable: true,
+    //     },
+    //     {
+    //       pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
+    //       isSigner: true,
+    //       isWritable: true,
+    //     },
+    //     {
+    //       pubkey: new PublicKey(rkey), //recipient
+    //       isSigner: false,
+    //       isWritable: true,
+    //     },
+    //     {
+    //       pubkey: SystemProgram.programId, //system program required to make a transfer
+    //       isSigner: false,
+    //       isWritable: false,
+    //     },
+    //   ],
+    //   programId: new PublicKey(PROGRAM_ID),
+    //   data: serialize(SendSolSchema,new SendSol(formSubmit_1)),      
+      
+    // });
+
+    // console.log('instruction',instruction);
+    // const transaction = new Transaction().add(instruction);
+
+    //   // try {
+    //     transaction.recentBlockhash = (
+    //       await connection.getLatestBlockhash()
+    //     ).blockhash;
+    //     transaction.feePayer = window.solana.publicKey;
+    //     transaction.partialSign(pda);
+    //     console.log('transaction:', transaction)
+    //     const signed = await window.solana.signTransaction(transaction);
+    //     console.log('signed:', signed)
+    //     const signature = await connection.sendRawTransaction(signed.serialize());
+    //     console.log('signature:', signature)
+    //     const finality = "confirmed";
+    //     await connection.confirmTransaction(signature, finality);
+    //     const explorerhash = {
+    //       transactionhash: signature,
+    //     };
+
+        // console.log('Explorerhash:', explorerhash);
     // } catch (e) {
     //   console.warn(e);
     //   return {
