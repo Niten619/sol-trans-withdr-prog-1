@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 // import ReactDOM from "react-dom";
-import {Keypair, TransactionInstruction, PublicKey, Transaction, Connection, clusterApiUrl, SystemProgram} from "@solana/web3.js";
+import {Keypair, TransactionInstruction, PublicKey, Transaction, Connection, clusterApiUrl, SystemProgram } from "@solana/web3.js";
 import "./styles.css";
 import { extendBorsh } from "./utils/borsh";
 import { Buffer } from "buffer";
 // const { extendBorsh } = require("./utils/borsh");
+import * as bs58 from "bs58";
 const { SendSolSchema, SendSol, WithdrawSolSchema, WithdrawSol } = require("./schema");
 const { serialize } = require("borsh");
 extendBorsh();
@@ -12,8 +13,19 @@ extendBorsh();
 // window.Buffer = Buffer;
 window.Buffer = window.Buffer || require("buffer").Buffer;
 
-const pda = new Keypair();
-const pda_address = pda.publicKey.toString();
+// const pda = new Keypair();
+// console.log("pda_1", pda_1)
+// const pda = "Ddbd4ZSoQb7AaNZwBW1c42uWpyFaSizn9RCTxvr2VXqF"
+// const pda_address = pda.publicKey.toString();
+
+// PDA generated from seed
+// const senderaddress = new PublicKey(window.solana.publicKey.toString());
+// const receiver_address = "3qupQgH5RaigtFNV7acr7Y9xvcc91F71VCf1szPH1Xej"
+// const pdaAddress = await PublicKey.findProgramAddress(
+//   [senderaddress.toBuffer()],
+//   receiver_address
+// );
+// console.log("PDA ADDRESS", pdaAddress[0].toBase58())
 
 function App() {
   // React States
@@ -28,10 +40,12 @@ function App() {
   // const PROGRAM_ID = "ACebcF5WjNbotDSPQjZPrRGVi8jPX4MYquePcBU2E1F1";  // program_id of the deployed program
   // const PROGRAM_ID = "2Xf6dAxq5AAhw7NqtJLsyCvwAGoMG911e2CproonqTk1";  // deployed on LocalNet
   const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
+  // const pda_address_new = "Ddbd4ZSoQb7AaNZwBW1c42uWpyFaSizn9RCTxvr2VXqF"
+  const senderaddress = "uyZFLgTNT2j6enw7wUKbawBJdB7Hj5tqVMUxN6TgV9x"; //my wallet-2
 
   // const pda = new Keypair();
   // const pda_address = pda.publicKey.toString();
-  console.log('PDA Address:', pda_address)
+  // console.log('PDA Address:', pda_address)
 
   const base58publicKey = new PublicKey(
     "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB"
@@ -55,8 +69,7 @@ function App() {
   // const network = "http://127.0.0.1:8899";
   // const connection = new Connection(network, opts.preflightCommitment);
 
-  // const cluster = "devnet"; 
-
+  // const cluster = "devnet";
 
   async function ConnectWallet(e){
     // console.log(e.target.value)
@@ -75,28 +88,73 @@ function App() {
   }
 
   async function transferTransaction(formSubmit) {
-    const senderaddress = new PublicKey(window.solana.publicKey.toString());
-    const vaultAddress_transfer = await PublicKey.findProgramAddress(
-      [Buffer.from(stringofwithdraw), senderaddress.toBuffer()],
+    // const senderaddress = new PublicKey(window.solana.publicKey.toString());
+    // console.log("senderaddress.toBuffer()", senderaddress.toBuffer())
+    // const receiver_address = new PublicKey("3qupQgH5RaigtFNV7acr7Y9xvcc91F71VCf1szPH1Xej");
+    // console.log('receiver_address', receiver_address)
+    // const pdaAddress = await PublicKey.findProgramAddress(
+    //   [senderaddress.toBuffer()],
+    //   receiver_address
+    // );
+
+    const pda = new Keypair();
+    console.log('pda keypair', pda)
+    console.log('pda publicKey', pda.publicKey)
+    console.log('pda_address(send)', pda.publicKey.toBase58())
+
+    // Storing PDA to the browser's local storage
+    const pdaObj = {
+      pda : pda,
+      pda_address : pda.publicKey.toBase58()
+    };
+    const myJson = JSON.stringify(pdaObj);
+    localStorage.setItem("pdaData", myJson);
+
+    // Retrieving Data from the browser's local storage
+    const text = localStorage.getItem("pdaData");
+    const obj = JSON.parse(text);
+    console.log('obj.pda:', obj.pda)
+    console.log('obj.pda_address:', obj.pda_address)
+
+    // const pda_keypair = Keypair.fromSecretKey(
+    //   bs58.decode("5MaiiCavjCmn9Hs1o3eznqDEhRwxo7pXiAYez7keQUviUkauRiTMD8DrESdrNjN8zd9mTmVhRvBJeg5vhyvgrAhG")
+    // );
+    // const pda_keypair_address = pda_keypair.publicKey.toBase58();
+    // console.log('pda_keypair:', pda_keypair)
+    // console.log('pda_keypair_address:', pda_keypair_address)
+
+    const vaultAddress_pub = await PublicKey.findProgramAddress(
+      [new PublicKey(senderaddress).toBuffer()],
       base58publicKey
     );
+    const vaultAddress = vaultAddress_pub[0].toBase58();
     console.log('SenderAddress', senderaddress)
-    console.log('vaultAddress_transfer', vaultAddress_transfer[0])
-    console.log('vaultAddress_transfer_base58', vaultAddress_transfer[0].toBase58())
-    // const pda = new Keypair();
+    console.log('SenderAddress_pub', new PublicKey(senderaddress))
+    console.log('vaultAddress_pub', vaultAddress_pub)
+    console.log('vaultAddress_pub[0]', vaultAddress_pub[0])
+    console.log('vaultAddress', vaultAddress)
+
     // console.log('PDA pubkey', pda.publicKey.toString())
     console.log('RKEY', rkey)
+    
+    // create keypairs
+    // let KEYPAIRS = web3.Keypair.fromSeed(pdaAddress);
+    // console.log("KEYPAIRS", KEYPAIRS)
+    // const keypair = Keypair.fromSecretKey(
+    //   bs58.decode("5MaiiCavjCmn9Hs1o3eznqDEhRwxo7pXiAYez7keQUviUkauRiTMD8DrESdrNjN8zd9mTmVhRvBJeg5vhyvgrAhG")
+    // );
 
     const instruction = new TransactionInstruction({
       keys: [
         {
-          pubkey: new PublicKey(pda_address),  // escrow
+          // pubkey: pda_keypair.publicKey,  // escrow
+          pubkey: pda.publicKey,  // escrow
           isSigner: true,
           isWritable: true,
         },
         {
           // pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
-          pubkey: senderaddress,  //sender
+          pubkey: new PublicKey(senderaddress),  //sender
           isSigner: true,
           isWritable: true,
         },
@@ -111,8 +169,8 @@ function App() {
           isWritable: false,
         },
         {
-          // pubkey: vaultAddress_transfer[0].toBase58(), //vault
-          pubkey: vaultAddress_transfer[0], //vault
+          // pubkey: vaultAddress, //vault
+          pubkey: vaultAddress_pub[0], //vault
           isSigner: false,
           isWritable: true,
         },
@@ -130,6 +188,7 @@ function App() {
         ).blockhash;
         transaction.feePayer = window.solana.publicKey;
         transaction.partialSign(pda);
+        // transaction.partialSign(pda_keypair);
         console.log('transaction:', transaction)
         const signed = await window.solana.signTransaction(transaction);
         console.log('signed:', signed)
@@ -145,24 +204,47 @@ function App() {
   }
 
   async function withdrawTransaction(formSubmit) {
-    const senderaddress = new PublicKey(window.solana.publicKey.toString());
-    const vaultAddress_withdraw = await PublicKey.findProgramAddress(
-      [senderaddress.toBuffer()],
+    // const senderaddress = new PublicKey(window.solana.publicKey.toString());
+    // const senderaddress = new PublicKey("uyZFLgTNT2j6enw7wUKbawBJdB7Hj5tqVMUxN6TgV9x");
+    // const receiver_address = new PublicKey("3qupQgH5RaigtFNV7acr7Y9xvcc91F71VCf1szPH1Xej");
+    // const pdaAddress = await PublicKey.findProgramAddress(
+    //   [senderaddress],
+    //   receiver_address
+    // );
+    
+    // Retrieving Data from the browser's local storage
+    const text = localStorage.getItem("pdaData");
+    const obj = JSON.parse(text);
+    console.log('obj.pda:', obj.pda)
+    console.log('obj.pda_address:', obj.pda_address)
+
+    const vaultAddress_pub = await PublicKey.findProgramAddress(
+      [new PublicKey(senderaddress).toBuffer()],
       base58publicKey
     );
+    const vaultAddress = vaultAddress_pub[0].toBase58();
+
+    // console.log('pda_address(receive)', pda_address)
     console.log('SenderAddress', senderaddress)
-    console.log('vaultAddress_withdraw', vaultAddress_withdraw)
+    console.log('vaultAddress_pub', vaultAddress_pub)
+    console.log('vaultAddress', vaultAddress)
     console.log('RKEY', rkey)
+
+    // const withdraw_data = await PublicKey.findProgramAddress(
+    //   [Buffer.from(stringofwithdraw),new PublicKey(senderaddress).toBuffer()],
+    //   base58publicKey
+    // );
 
     const instruction = new TransactionInstruction({
       keys: [
         {
-          pubkey: new PublicKey(pda_address),  // escrow
+          // pubkey: new PublicKey(pda_address),  // escrow
+          pubkey: new PublicKey(obj.pda_address),
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: new PublicKey(window.solana.publicKey.toString()),  //sender
+          pubkey: new PublicKey(senderaddress),  //sender
           isSigner: false,
           isWritable: true,
         },
@@ -177,8 +259,8 @@ function App() {
           isWritable: false,
         },
         {
-          pubkey: vaultAddress_withdraw[0].toBase58(), //vault
-          // pubkey: vaultAddress_withdraw[0], //vault
+          // pubkey: vaultAddress, //vault
+          pubkey: vaultAddress_pub[0], //vault
           isSigner: false,
           isWritable: true,
         },
