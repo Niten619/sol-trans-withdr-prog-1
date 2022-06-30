@@ -42,6 +42,7 @@ function App() {
   const PROGRAM_ID = "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB";  // program_id of the deployed program
   // const pda_address_new = "Ddbd4ZSoQb7AaNZwBW1c42uWpyFaSizn9RCTxvr2VXqF"
   const senderaddress = "uyZFLgTNT2j6enw7wUKbawBJdB7Hj5tqVMUxN6TgV9x"; //my wallet-2
+  // const senderaddress = "enter_the_address_of_sender's_wallet";
 
   // const pda = new Keypair();
   // const pda_address = pda.publicKey.toString();
@@ -50,7 +51,7 @@ function App() {
   const base58publicKey = new PublicKey(
     "8EBQJdgAdFiSu56Nh1PfE3JKbEJ9s4ez1auDvjvCyosB"
   );
-  const stringofwithdraw = "withdraw_sol";
+  // const stringofwithdraw = "withdraw_sol";
 
   const handleChange = e => {
     // this.setState({radio_value:e.target.value})
@@ -88,14 +89,6 @@ function App() {
   }
 
   async function transferTransaction(formSubmit) {
-    // const senderaddress = new PublicKey(window.solana.publicKey.toString());
-    // console.log("senderaddress.toBuffer()", senderaddress.toBuffer())
-    // const receiver_address = new PublicKey("3qupQgH5RaigtFNV7acr7Y9xvcc91F71VCf1szPH1Xej");
-    // console.log('receiver_address', receiver_address)
-    // const pdaAddress = await PublicKey.findProgramAddress(
-    //   [senderaddress.toBuffer()],
-    //   receiver_address
-    // );
 
     const pda = new Keypair();
     console.log('pda keypair', pda)
