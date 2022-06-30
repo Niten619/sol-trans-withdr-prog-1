@@ -149,7 +149,7 @@ impl Processor{
         let sender_account = next_account_info(account_info_iter)?;    //  sender account  \\
         let receiver_account = next_account_info(account_info_iter)?; //  receipent account \\
         let system_program = next_account_info(account_info_iter)?;  //   system program     \\
-        let vault = next_account_info(account_info_iter)?;          //    vault account       \\
+        let vault = next_account_info(account_info_iter)?;          //     vault account      \\
 
         let escrow_data = Escrow::try_from_slice(&escrow_account.data.borrow()).expect("Failed to seriallize");
 
@@ -161,14 +161,14 @@ impl Processor{
             return Err(ProgramError::MissingRequiredSignature);
         }
 
-        let (account_address, _bump_seed) = Pubkey::find_program_address(
-            &[&sender_account.key.to_bytes()],
-            program_id,
-        );
+        // let (account_address, _bump_seed) = Pubkey::find_program_address(
+        //     &[&sender_account.key.to_bytes()],
+        //     program_id,
+        // );
 
-        if account_address != *escrow_account.key{
-            return Err(ProgramError::InvalidAccountData);
-        }
+        // if account_address != *escrow_account.key{
+        //     return Err(ProgramError::InvalidAccountData);
+        // }
 
         if escrow_data.start_time + 2 > Clock::get()?.unix_timestamp as u64{ // 24 hours not passed yet (24*60*60)
             return Err(EscrowError::WithdrawTimeLimitNotExceed.into());
@@ -217,6 +217,11 @@ impl Processor{
         let system_program = next_account_info(account_info_iter)?;  // system program
         let token_mint_info = next_account_info(account_info_iter)?; 
         let token_program_info = next_account_info(account_info_iter)?; 
+        let sender_associated_info = next_account_info(account_info_iter)?; // TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+        let vault_associated_info = next_account_info(account_info_iter)?;
+        let rent_info = next_account_info(account_info_iter)?; 
+        let associated_token_info = next_account_info(account_info_iter)?; // Associated token master {ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL}
+        let vault = next_account_info(account_info_iter)?;
 
         if token_program_info.key != &spl_token::id() {
             return Err(ProgramError::IncorrectProgramId);
@@ -226,7 +231,7 @@ impl Processor{
             return Err(ProgramError::MissingRequiredSignature); 
         }
 
-        let (account_address, bump_seed) = Pubkey::find_program_address(
+        let (_account_address, bump_seed) = Pubkey::find_program_address(
             &[
                 PREFIX_TOKEN.as_bytes(),
                 &sender_account.key.to_bytes()
@@ -234,14 +239,14 @@ impl Processor{
             program_id,
         );
 
-        if account_address != *escrow_account.key{
-            return Err(ProgramError::InvalidAccountData);
-        }
+        // if account_address != *escrow_account.key{
+        //     return Err(ProgramError::InvalidAccountData);
+        // }
 
         invoke_signed(
             &system_instruction::create_account(
                 sender_account.key, 
-                escrow_account.key, 
+                escrow_account.key,
                 Rent::get()?.minimum_balance(std::mem::size_of::<InitTokenInput>()),
                 112,
                 program_id
@@ -259,6 +264,50 @@ impl Processor{
         escrow.receiver = *receiver_account.key;
 
         escrow.serialize(&mut &mut escrow_account.data.borrow_mut()[..])?;
+
+        //creating associated token program for receiver to transfer token
+        invoke(
+            &spl_associated_token_account::create_associated_token_account(
+                sender_account.key,
+                vault.key,
+                token_mint_info.key
+            ), 
+            &[
+                sender_account.clone(),
+                vault_associated_info.clone(),
+                vault.clone(),
+                token_mint_info.clone(),
+                system_program.clone(),
+                token_program_info.clone(),
+                rent_info.clone(),
+                associated_token_info.clone(),
+            ]
+        )?;
+
+        let (_account_address, bump) = Pubkey::find_program_address(
+            &[&sender_account.key.to_bytes()], 
+            program_id
+        );
+
+        let pda_signer_seeds: &[&[_]] = &[&sender_account.key.to_bytes(), &[bump]];
+
+        invoke_signed(
+            &spl_token::instruction::transfer(
+                token_program_info.key,
+                sender_associated_info.key,
+                vault_associated_info.key,
+                sender_account.key,
+                &[sender_account.key],
+                amount,
+            )?,
+            &[
+                token_program_info.clone(),
+                vault_associated_info.clone(),
+                sender_associated_info.clone(),
+                sender_account.clone(),
+                system_program.clone(),
+            ],&[&pda_signer_seeds],
+        )?;
 
         Ok(())
     }
@@ -279,10 +328,11 @@ impl Processor{
         let receiver_account = next_account_info(account_info_iter)?;
         let system_program = next_account_info(account_info_iter)?; 
         let token_mint_info = next_account_info(account_info_iter)?;
-        let token_program_info = next_account_info(account_info_iter)?; 
+        let token_program_info = next_account_info(account_info_iter)?; // TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
         let vault_associated_info = next_account_info(account_info_iter)?; 
         let receiver_associated_info = next_account_info(account_info_iter)?;
         let rent_info = next_account_info(account_info_iter)?; 
+        let associated_token_info = next_account_info(account_info_iter)?; // Associated token master {ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL}
 
 
         if *escrow_account.owner != *program_id {
@@ -296,6 +346,7 @@ impl Processor{
         if !receiver_account.is_signer {
             return Err(ProgramError::MissingRequiredSignature); 
         }
+
         if escrow_account.data_is_empty(){
             return Err(ProgramError::UninitializedAccount);
         }
@@ -310,7 +361,7 @@ impl Processor{
             return Err(TokenError::EscrowMismatch.into());
         }
 
-        if escrow.start_time + (24*60*60) > Clock::get()?.unix_timestamp as u64{ // 24 hours not passed yet
+        if escrow.start_time + 2 > Clock::get()?.unix_timestamp as u64{ // 24 hours not passed yet
             return Err(EscrowError::WithdrawTimeLimitNotExceed.into());
         }
 
@@ -328,7 +379,8 @@ impl Processor{
                 token_mint_info.clone(),
                 system_program.clone(),
                 token_program_info.clone(),
-                rent_info.clone()
+                rent_info.clone(),
+                associated_token_info.clone(),
             ]
         )?;
 
