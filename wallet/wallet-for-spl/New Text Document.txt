@@ -1,0 +1,7 @@
+pubkey: HZpyGMxawAZy8ENvRtTsdQiwDGeBMtU2Dx1P9DFdRdvu
+
+Save this seed phrase and your BIP39 passphrase to recover your new keypair:
+fame word cactus canyon energy match winter orchard bone best anger season
+
+spl-token-identifier/token mint address: itUKBea2APSEQfSibh3zMMCexaeJ1sWXHLoRj6TJX3N
+associated account: E4cwRz6GRdxFF61LRnoKAPpjLm9gX9xp4iNLMG8g4iwK
